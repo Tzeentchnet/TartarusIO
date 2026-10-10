@@ -31,6 +31,31 @@ const controls = [
   { id: "paddle", number: "P", name: "Thumb paddle", defaultValue: "Space", defaultDescription: "Jump" },
 ];
 
+const remapWizardControls = [
+  ...controls.slice(0, 15),
+  controls.find((control) => control.id === "thumb"),
+  ...controls.filter((control) => control.id.startsWith("dpad-")),
+  controls.find((control) => control.id === "paddle"),
+].filter(Boolean);
+
+const modifierValues = ["Ctrl", "Shift", "Alt", "Meta"];
+const recordedKeyAliases = {
+  " ": "Space",
+  Spacebar: "Space",
+  Escape: "Esc",
+  Esc: "Esc",
+  Control: "Ctrl",
+  OS: "Meta",
+  ArrowUp: "Up",
+  ArrowRight: "Right",
+  ArrowDown: "Down",
+  ArrowLeft: "Left",
+  CapsLock: "Caps Lock",
+  PageUp: "Page Up",
+  PageDown: "Page Down",
+  Del: "Delete",
+};
+
 const palette = [
   { color: "#68f59a", name: "Signal green" },
   { color: "#83f3ff", name: "Ion blue" },
@@ -410,6 +435,7 @@ if (!state.macros) {
 let draft = null;
 let toastTimer = null;
 let recording = false;
+let remapWizard = null;
 let playingMacro = false;
 let editingProfileId = null;
 let profileSourceId = null;
@@ -457,9 +483,18 @@ const elements = {
   keyGrid: document.querySelector("#keyGrid"),
   dpad: document.querySelector("#dpad"),
   deviceStage: document.querySelector("#deviceStage"),
+  inspectorPanel: document.querySelector("#inspectorPanel"),
   deviceHint: document.querySelector("#deviceHint"),
   mappedCount: document.querySelector("#mappedCount"),
   macroMappedCount: document.querySelector("#macroMappedCount"),
+  remapWizard: document.querySelector("#remapWizard"),
+  remapWizardButton: document.querySelector("#remapWizardButton"),
+  remapWizardCancelButton: document.querySelector("#remapWizardCancelButton"),
+  remapWizardTarget: document.querySelector("#remapWizardTarget"),
+  remapWizardInstruction: document.querySelector("#remapWizardInstruction"),
+  remapWizardProgress: document.querySelector("#remapWizardProgress"),
+  remapWizardProgressFill: document.querySelector("#remapWizardProgressFill"),
+  remapWizardCount: document.querySelector("#remapWizardCount"),
   testModeButton: document.querySelector("#testModeButton"),
   selectedControlBadge: document.querySelector("#selectedControlBadge"),
   selectedControlTitle: document.querySelector("#selectedControlTitle"),
@@ -1196,13 +1231,51 @@ function renderKeypad() {
 
   ["thumb", "paddle"].forEach((id) => {
     const button = document.querySelector(`[data-control-id="${id}"]`);
+    const control = controls.find((item) => item.id === id);
+    const binding = profile.mappings[id];
+    const formattedBinding = formatBinding(binding);
     button?.classList.toggle("is-selected", id === state.selectedControlId);
     button?.setAttribute("aria-pressed", String(id === state.selectedControlId));
+    button?.setAttribute("aria-label", `${control.name}, assigned to ${formattedBinding}`);
+    const bindingLabel = button?.querySelector("[data-binding-label]");
+    if (bindingLabel) {
+      bindingLabel.textContent = formatBinding(binding, true);
+      bindingLabel.title = formattedBinding;
+    }
+  });
+
+  const wizardControl = getRemapWizardControl();
+  document.querySelectorAll("[data-control-id]").forEach((button) => {
+    button.classList.toggle("is-wizard-target", button.dataset.controlId === wizardControl?.id);
   });
 
   const mappings = Object.values(profile.mappings);
   elements.mappedCount.textContent = String(mappings.filter((binding) => binding.value).length);
   elements.macroMappedCount.textContent = String(mappings.filter((binding) => binding.type === "Macro").length);
+}
+
+function renderRemapWizard() {
+  const control = getRemapWizardControl();
+  const active = Boolean(control);
+  elements.remapWizard.hidden = !active;
+  elements.remapWizardButton.disabled = active;
+  elements.testModeButton.disabled = active;
+  elements.inspectorPanel.inert = active;
+  elements.inspectorPanel.classList.toggle("is-wizard-locked", active);
+
+  if (!active) {
+    return;
+  }
+
+  const step = remapWizard.index + 1;
+  const total = remapWizardControls.length;
+  elements.remapWizardTarget.textContent = control.name;
+  elements.remapWizardInstruction.textContent =
+    remapWizard.instruction || "Press the keyboard key or chord to assign.";
+  elements.remapWizardCount.textContent = `${step} of ${total}`;
+  elements.remapWizardProgress.setAttribute("aria-valuemax", String(total));
+  elements.remapWizardProgress.setAttribute("aria-valuenow", String(step));
+  elements.remapWizardProgressFill.style.width = `${(step / total) * 100}%`;
 }
 
 function renderInspector() {
@@ -1348,6 +1421,7 @@ function renderAll() {
   renderProfileHeader();
   renderTabs();
   renderKeypad();
+  renderRemapWizard();
   renderInspector();
   renderLightingPreview();
   renderMacros();
@@ -1356,6 +1430,10 @@ function renderAll() {
 }
 
 function selectControl(id) {
+  if (remapWizard) {
+    return;
+  }
+
   if (!controls.some((control) => control.id === id)) {
     return;
   }
@@ -1383,6 +1461,7 @@ function selectProfile(profileId) {
   if (profileId === state.selectedProfileId) {
     return;
   }
+  stopRemapWizard(false, false);
   state.selectedProfileId = profileId;
   state.selectedControlId = "08";
   resetDraft();
@@ -1427,12 +1506,16 @@ function assignDraft() {
 }
 
 function setActiveTab(tabName) {
+  if (tabName !== "mapping") {
+    stopRemapWizard(false, false);
+  }
   state.activeTab = tabName;
   renderTabs();
   persistState();
 }
 
 async function applyProfile() {
+  stopRemapWizard(false, false);
   setDirty(false);
   if (!usesCompanion || !companionStatus?.companion) {
     state.activeProfileId = state.selectedProfileId;
@@ -1495,6 +1578,7 @@ async function applyProfile() {
 }
 
 function resetActiveProfile() {
+  stopRemapWizard(false, false);
   const profile = getActiveProfile();
   const defaultProfile = createDefaultProfiles().find((item) => item.id === profile.id);
   if (!defaultProfile) {
@@ -1575,6 +1659,7 @@ async function toggleRemapping() {
 }
 
 function openProfileDialog(editing = false) {
+  stopRemapWizard(false, false);
   const profile = getActiveProfile();
   editingProfileId = editing ? profile.id : null;
   profileSourceId = profile.id;
@@ -1770,10 +1855,201 @@ async function previewMacro() {
   elements.playMacroButton.innerHTML = '<svg><use href="#icon-play"></use></svg> Preview';
 }
 
-function startRecording() {
-  recording = !recording;
+function getRemapWizardControl() {
+  return remapWizard ? remapWizardControls[remapWizard.index] || null : null;
+}
+
+function setRecording(active) {
+  recording = active;
   elements.recordButton.classList.toggle("is-recording", recording);
   elements.recordButton.lastChild.textContent = recording ? " Press a key…" : " Record input";
+}
+
+function normalizeRecordedKey(event) {
+  const value = recordedKeyAliases[event.key] || event.key;
+  if (!value || value === "Dead" || value === "Unidentified") {
+    return "";
+  }
+  return value.length === 1 ? value.toUpperCase() : value;
+}
+
+function getRecordedModifiers(event, excludedValue = "") {
+  const activeModifiers = {
+    Ctrl: event.ctrlKey,
+    Shift: event.shiftKey,
+    Alt: event.altKey,
+    Meta: event.metaKey,
+  };
+  return modifierValues.filter((modifier) => modifier !== excludedValue && activeModifiers[modifier]);
+}
+
+function startRemapWizard() {
+  if (remapWizard) {
+    return;
+  }
+
+  setRecording(false);
+  elements.testModeButton.classList.remove("is-active");
+  remapWizard = {
+    index: 0,
+    profileId: state.selectedProfileId,
+    pendingModifiers: new Set(),
+    ignoredModifierReleases: new Set(),
+    instruction: "",
+  };
+  state.selectedControlId = remapWizardControls[0].id;
+  resetDraft();
+  renderKeypad();
+  renderRemapWizard();
+  renderInspector();
+  elements.deviceHint.textContent = "Guided remap active. Press the desired keyboard input for the flashing control.";
+  document.activeElement?.blur();
+  persistState();
+}
+
+function stopRemapWizard(completed = false, notify = true) {
+  if (!remapWizard) {
+    return;
+  }
+
+  const assignedCount = remapWizard.index;
+  remapWizard = null;
+  resetDraft();
+  renderKeypad();
+  renderRemapWizard();
+  renderInspector();
+  elements.deviceHint.textContent = "Select a control to change its assignment.";
+  persistState();
+
+  if (!notify) {
+    return;
+  }
+
+  if (completed) {
+    showToast(
+      "Remap complete",
+      `All ${remapWizardControls.length} controls were assigned. Review the layout, then apply the profile.`,
+    );
+  } else if (assignedCount) {
+    showToast(
+      "Remap wizard stopped",
+      `${assignedCount} completed assignment${assignedCount === 1 ? " was" : "s were"} kept.`,
+    );
+  } else {
+    showToast("Remap wizard stopped", "No assignments were changed.");
+  }
+}
+
+function assignRemapWizardKey(value, modifiers) {
+  const control = getRemapWizardControl();
+  const profile = state.profiles.find((item) => item.id === remapWizard?.profileId);
+  if (!control || !profile) {
+    stopRemapWizard(false, false);
+    showToast("Remap wizard stopped", "The profile being remapped is no longer available.");
+    return;
+  }
+
+  const currentBinding = profile.mappings[control.id];
+  const nextBinding = {
+    ...currentBinding,
+    type: "Keyboard",
+    value,
+    description: describeBinding("Keyboard", value),
+    modifiers,
+    trigger: "Hold",
+  };
+  profile.mappings[control.id] = nextBinding;
+  remapWizard.index += 1;
+  remapWizard.pendingModifiers.clear();
+  remapWizard.instruction = `${formatBinding(nextBinding)} assigned to ${control.name}. Press the next input.`;
+
+  if (remapWizard.index < remapWizardControls.length) {
+    state.selectedControlId = remapWizardControls[remapWizard.index].id;
+    resetDraft();
+  }
+
+  setDirty();
+
+  if (remapWizard.index >= remapWizardControls.length) {
+    stopRemapWizard(true);
+    return;
+  }
+
+  renderKeypad();
+  renderRemapWizard();
+  renderInspector();
+}
+
+function handleRemapWizardKeyDown(event) {
+  if (!remapWizard) {
+    return;
+  }
+
+  event.preventDefault();
+  event.stopPropagation();
+  if (event.repeat) {
+    return;
+  }
+
+  const value = normalizeRecordedKey(event);
+  if (!value) {
+    remapWizard.instruction = "That key could not be identified. Try another keyboard input.";
+    renderRemapWizard();
+    return;
+  }
+
+  if (modifierValues.includes(value)) {
+    remapWizard.pendingModifiers.add(value);
+    remapWizard.instruction = `${value} held — press another key for a chord, or release it to assign ${value}.`;
+    renderRemapWizard();
+    return;
+  }
+
+  const modifiers = new Set(getRecordedModifiers(event, value));
+  remapWizard.pendingModifiers.forEach((modifier) => modifiers.add(modifier));
+  remapWizard.pendingModifiers.forEach((modifier) => remapWizard.ignoredModifierReleases.add(modifier));
+  assignRemapWizardKey(
+    value,
+    modifierValues.filter((modifier) => modifiers.has(modifier)),
+  );
+}
+
+function handleRemapWizardKeyUp(event) {
+  if (!remapWizard) {
+    return;
+  }
+
+  event.preventDefault();
+  event.stopPropagation();
+  const value = normalizeRecordedKey(event);
+  if (!modifierValues.includes(value)) {
+    return;
+  }
+
+  if (remapWizard.ignoredModifierReleases.delete(value)) {
+    remapWizard.pendingModifiers.delete(value);
+    return;
+  }
+  if (!remapWizard.pendingModifiers.has(value)) {
+    return;
+  }
+
+  const modifiers = modifierValues.filter(
+    (modifier) => modifier !== value && remapWizard.pendingModifiers.has(modifier),
+  );
+  remapWizard.pendingModifiers.forEach((modifier) => {
+    if (modifier !== value) {
+      remapWizard.ignoredModifierReleases.add(modifier);
+    }
+  });
+  assignRemapWizardKey(value, modifiers);
+}
+
+function startRecording() {
+  if (remapWizard) {
+    return;
+  }
+  setRecording(!recording);
   if (recording) {
     elements.bindingValue.focus();
   }
@@ -1784,22 +2060,18 @@ function handleRecordedKey(event) {
     return;
   }
   event.preventDefault();
-  const ignored = ["Control", "Shift", "Alt", "Meta"];
-  if (ignored.includes(event.key)) {
+  if (event.repeat) {
     return;
   }
-  const modifiers = [];
-  if (event.ctrlKey) modifiers.push("Ctrl");
-  if (event.shiftKey) modifiers.push("Shift");
-  if (event.altKey) modifiers.push("Alt");
-  if (event.metaKey) modifiers.push("Meta");
-  draft.value = event.key.length === 1 ? event.key.toUpperCase() : event.key;
-  draft.modifiers = modifiers;
+  const value = normalizeRecordedKey(event);
+  if (!value || modifierValues.includes(value)) {
+    return;
+  }
+  draft.value = value;
+  draft.modifiers = getRecordedModifiers(event, value);
   draft.type = "Keyboard";
   state.bindingType = "Keyboard";
-  recording = false;
-  elements.recordButton.classList.remove("is-recording");
-  elements.recordButton.lastChild.textContent = " Record input";
+  setRecording(false);
   renderInspector();
 }
 
@@ -1838,6 +2110,8 @@ elements.testModeButton.addEventListener("click", () => {
     ? "Test mode is active. Press any control to preview it."
     : "Select a control to change its assignment.";
 });
+elements.remapWizardButton.addEventListener("click", startRemapWizard);
+elements.remapWizardCancelButton.addEventListener("click", () => stopRemapWizard(false));
 
 elements.bindingTypes.addEventListener("click", (event) => {
   const button = event.target.closest("[data-binding-type]");
@@ -1874,6 +2148,7 @@ elements.applyButton.addEventListener("click", applyProfile);
 elements.resetButton.addEventListener("click", resetActiveProfile);
 elements.exportButton.addEventListener("click", exportConfiguration);
 elements.deviceStatusButton.addEventListener("click", () => {
+  stopRemapWizard(false, false);
   if (!elements.deviceDialog.open) {
     elements.deviceDialog.showModal();
   }
@@ -1920,6 +2195,8 @@ elements.sequenceList.addEventListener("click", (event) => {
   if (button) removeMacroStep(Number(button.dataset.removeStep));
 });
 
+document.addEventListener("keydown", handleRemapWizardKeyDown, true);
+document.addEventListener("keyup", handleRemapWizardKeyUp, true);
 document.addEventListener("keydown", (event) => {
   if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
     event.preventDefault();

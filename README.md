@@ -36,7 +36,7 @@ The companion:
 - Captures input from this keypad through Windows Raw Input.
 - Applies profile lighting directly through the keypad's HID lighting interface.
 - Stores software profiles and emits mapped keyboard or mouse actions.
-- Refuses to enable output until physical input isolation is verified.
+- Gates output on the currently configured isolation status; see the keyboard-class limitation below.
 
 Opening [`index.html`](./index.html) directly remains available as a browser-only preview, but it cannot detect or remap the keypad.
 
@@ -61,7 +61,10 @@ A connected original Chroma should report:
 
 ### Install input isolation
 
-Tartarus IO uses [HidHide](https://github.com/nefarius/HidHide/releases/latest) to keep the keypad's factory keystroke from reaching applications alongside its remapped action.
+> [!WARNING]
+> **Keyboard-class isolation is not currently solved.** The Tartarus exposes its controls as standard keyboard and mouse interfaces. [HidHide documents that it cannot hide keyboard, mouse, or Raw Input paths](https://docs.nefarius.at/projects/HidHide/FAQ/#can-it-hide-mice-keyboards-touch-or-trackpads). HidHide can therefore report the Tartarus as configured while Windows applications still receive its factory action alongside the mapped action—for example, key `01` can produce both `Tab` and a mapped `3`. Until Tartarus IO integrates a per-device keyboard filter, keep remapping disabled anywhere duplicate input is unacceptable.
+
+Tartarus IO currently integrates [HidHide](https://github.com/nefarius/HidHide/releases/latest) as a provisional isolation check for the keypad's HID interfaces. It does not suppress the Tartarus keyboard-class output described above.
 
 1. Open **Device connection** from the top bar.
 2. Select **Install HidHide** to open the official release page.
@@ -72,9 +75,11 @@ Tartarus IO uses [HidHide](https://github.com/nefarius/HidHide/releases/latest) 
 7. Unplug and reconnect the keypad.
 8. Select **Apply profile** to enable remapping.
 
-Tartarus IO will not emit mapped actions before HidHide is installed, the companion is allow-listed, the Chroma is hidden, and the cloak is active. This fail-safe avoids double input.
+Custom HidHide installation folders are supported; Tartarus IO resolves the location registered by the HidHide installer.
 
-HidHide is only required for key remapping. Device detection, profile editing, automatic profile switching, and Chroma lighting work without it.
+Tartarus IO will not emit mapped actions before HidHide is installed, the companion is allow-listed, the Chroma is listed as hidden, and the cloak is active. This verifies the configured HidHide state only; it does not prove keyboard-class isolation and cannot guarantee that double input is prevented.
+
+The current HidHide integration affects only the remapping gate. Device detection, profile editing, automatic profile switching, and Chroma lighting work without it.
 
 > [!WARNING]
 > HidHide is a kernel filter driver. Download it only from the official `nefarius/HidHide` GitHub releases. To recover from an incorrect configuration, open **HidHide Configuration Client** and turn off **Enable device hiding**, then reconnect the keypad.
@@ -132,6 +137,18 @@ The **Mapping** workspace represents all 25 programmable inputs:
 - Thumb paddle
 
 ![Mapping workspace with the physical keypad and assignment inspector](docs/screenshots/mapping-overview.png)
+
+### Remap every control
+
+Select **Remap wizard** to assign keyboard inputs across the complete keypad without selecting each control manually.
+
+1. Press the keyboard key or key combination for the flashing control.
+2. The assignment is applied immediately and the wizard advances automatically.
+3. Continue through keys `01`–`16`, the eight thumbpad directions clockwise, and the thumb paddle.
+4. Select **Stop wizard** at any time to leave the wizard; completed assignments are kept.
+5. Review the layout and select **Apply profile**.
+
+To assign a modifier such as `Shift` by itself, press and release it. Hold modifiers while pressing another key to capture combinations such as `Ctrl+K`. Wizard-created keyboard assignments use **Hold while pressed** so their down/up timing mirrors the physical control. Use the assignment inspector for mouse actions, macros, profiles, and other trigger-behavior changes.
 
 ### Assign a control
 
@@ -345,13 +362,8 @@ HidHide setup is not part of lighting troubleshooting.
 
 ### Original and mapped actions both fire
 
-Stop remapping immediately. Open HidHide Configuration Client and verify:
+Stop remapping immediately. This is a known limitation when the Tartarus factory action comes from its keyboard or mouse interfaces: HidHide cannot suppress those input paths.
 
-- `TartarusIO.Companion.exe` is allow-listed.
-- Every `1532:0208` Tartarus Chroma interface is hidden.
-- **Enable device hiding** is on.
-- **Inverse application cloak** is off.
-
-Reconnect the keypad after changing HidHide settings.
+HidHide configuration can still be reviewed to confirm that `TartarusIO.Companion.exe` is allow-listed, device hiding is enabled, and inverse application cloaking is off, but a ready status does not resolve the keyboard-class limitation. Keep active remapping disabled until a per-device keyboard filter backend is available.
 
 The interaction model was informed by [OpenTartarus](https://github.com/PikkonMG/opentartarus/). The original Chroma lighting report behavior was cross-checked against [OpenRazer](https://github.com/openrazer/openrazer) and [OpenRGB](https://github.com/CalcProgrammer1/OpenRGB). The visual design and implementation are original and specifically model the original 25-input Tartarus Chroma layout.

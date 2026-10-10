@@ -200,12 +200,41 @@
                       <button class="is-active" type="button">Base</button>
                       <button type="button" disabled title="The original Tartarus Chroma exposes one base layer">Fn</button>
                     </div>
+                    <button class="secondary-button" id="remapWizardButton" type="button">
+                      <svg aria-hidden="true"><use href="#icon-keyboard"></use></svg>
+                      <span>Remap wizard</span>
+                    </button>
                     <button class="secondary-button" id="testModeButton" type="button">
                       <span class="test-dot"></span>
                       Test input
                     </button>
                   </div>
                 </header>
+
+                <div class="remap-wizard" id="remapWizard" role="region" aria-labelledby="remapWizardTarget" hidden>
+                  <div class="remap-wizard-copy">
+                    <span class="panel-kicker">Guided remap</span>
+                    <strong id="remapWizardTarget">Key 01</strong>
+                    <span id="remapWizardInstruction" aria-live="polite">Press the keyboard key or chord to assign.</span>
+                  </div>
+                  <div class="remap-wizard-progress">
+                    <div
+                      class="remap-wizard-progress-track"
+                      id="remapWizardProgress"
+                      role="progressbar"
+                      aria-label="Remap progress"
+                      aria-valuemin="1"
+                      aria-valuemax="25"
+                      aria-valuenow="1"
+                    >
+                      <span id="remapWizardProgressFill"></span>
+                    </div>
+                    <span id="remapWizardCount">1 of 25</span>
+                  </div>
+                  <button class="secondary-button remap-wizard-cancel" id="remapWizardCancelButton" type="button">
+                    Stop wizard
+                  </button>
+                </div>
 
                 <div class="device-stage" id="deviceStage">
                   <span class="ambient-glow ambient-glow-one"></span>
@@ -221,11 +250,11 @@
                     <div class="thumb-deck">
                       <button class="thumb-button" type="button" data-control-id="thumb" aria-label="Upper thumb button">
                         <span class="thumb-button-cap" aria-hidden="true">16</span>
-                        <span class="thumb-control-label">ALT</span>
+                        <span class="thumb-control-label" data-binding-label>ALT</span>
                       </button>
                       <div class="dpad" id="dpad" aria-label="Eight-way directional thumbpad"></div>
                       <button class="thumb-paddle" type="button" data-control-id="paddle" aria-label="Thumb paddle">
-                        <span>SPACE</span>
+                        <span data-binding-label>SPACE</span>
                       </button>
                     </div>
                     <div class="palm-rest" aria-hidden="true">
