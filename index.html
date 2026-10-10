@@ -1,0 +1,598 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Tartarus IO — a focused configuration interface for the Razer Tartarus Chroma."
+    />
+    <title>Tartarus IO</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <svg class="icon-sprite" aria-hidden="true">
+      <symbol id="icon-chevron" viewBox="0 0 24 24">
+        <path d="m9 18 6-6-6-6" />
+      </symbol>
+      <symbol id="icon-check" viewBox="0 0 24 24">
+        <path d="m5 12 4 4L19 6" />
+      </symbol>
+      <symbol id="icon-search" viewBox="0 0 24 24">
+        <circle cx="11" cy="11" r="7" />
+        <path d="m20 20-4-4" />
+      </symbol>
+      <symbol id="icon-plus" viewBox="0 0 24 24">
+        <path d="M12 5v14M5 12h14" />
+      </symbol>
+      <symbol id="icon-keyboard" viewBox="0 0 24 24">
+        <rect x="3" y="6" width="18" height="12" rx="2" />
+        <path d="M7 10h.01M10 10h.01M13 10h.01M16 10h.01M7 13h.01M10 13h.01M13 13h4M7 16h10" />
+      </symbol>
+      <symbol id="icon-mouse" viewBox="0 0 24 24">
+        <rect x="6" y="3" width="12" height="18" rx="6" />
+        <path d="M12 3v6M6 10h12" />
+      </symbol>
+      <symbol id="icon-command" viewBox="0 0 24 24">
+        <path d="M9 6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6Z" />
+      </symbol>
+      <symbol id="icon-sun" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="4" />
+        <path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41" />
+      </symbol>
+      <symbol id="icon-layers" viewBox="0 0 24 24">
+        <path d="m12 2 9 5-9 5-9-5 9-5Z" />
+        <path d="m3 12 9 5 9-5M3 17l9 5 9-5" />
+      </symbol>
+      <symbol id="icon-play" viewBox="0 0 24 24">
+        <path d="m8 5 11 7-11 7V5Z" />
+      </symbol>
+      <symbol id="icon-stop" viewBox="0 0 24 24">
+        <rect x="6" y="6" width="12" height="12" rx="2" />
+      </symbol>
+      <symbol id="icon-copy" viewBox="0 0 24 24">
+        <rect x="8" y="8" width="11" height="11" rx="2" />
+        <path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3" />
+      </symbol>
+      <symbol id="icon-trash" viewBox="0 0 24 24">
+        <path d="M4 7h16M9 3h6l1 4H8l1-4ZM6 7l1 14h10l1-14M10 11v6M14 11v6" />
+      </symbol>
+      <symbol id="icon-reset" viewBox="0 0 24 24">
+        <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
+        <path d="M3 3v5h5" />
+      </symbol>
+      <symbol id="icon-download" viewBox="0 0 24 24">
+        <path d="M12 3v12M7 10l5 5 5-5M5 21h14" />
+      </symbol>
+      <symbol id="icon-info" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 11v6M12 7h.01" />
+      </symbol>
+      <symbol id="icon-gamepad" viewBox="0 0 24 24">
+        <path d="M8 8h8a5 5 0 0 1 4.7 6.7l-1 2.8a2.2 2.2 0 0 1-3.6.9L14 16h-4l-2.1 2.4a2.2 2.2 0 0 1-3.6-.9l-1-2.8A5 5 0 0 1 8 8Z" />
+        <path d="M8 11v4M6 13h4M16.5 12h.01M18 14h.01" />
+      </symbol>
+    </svg>
+
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand" aria-label="Tartarus IO">
+          <span class="brand-mark" aria-hidden="true">
+            <span></span><span></span><span></span>
+          </span>
+          <span class="brand-name">TARTARUS <strong>IO</strong></span>
+        </div>
+
+        <button class="device-status" id="deviceStatusButton" type="button">
+          <span class="device-icon" aria-hidden="true">
+            <svg><use href="#icon-gamepad"></use></svg>
+          </span>
+          <span class="device-copy">
+            <strong id="deviceName">Razer Tartarus Chroma</strong>
+            <small><span class="status-dot" id="deviceStatusDot"></span> <span id="deviceStatusLabel">Looking for companion</span></small>
+          </span>
+          <svg class="device-chevron" aria-hidden="true"><use href="#icon-chevron"></use></svg>
+        </button>
+
+        <div class="topbar-actions">
+          <div class="save-state" id="saveState" role="status">
+            <span class="save-state-icon">
+              <svg><use href="#icon-check"></use></svg>
+            </span>
+            <span id="saveStateLabel">Profile ready</span>
+          </div>
+          <button class="icon-button" id="resetButton" type="button" aria-label="Reset active profile" title="Reset active profile">
+            <svg><use href="#icon-reset"></use></svg>
+          </button>
+          <button class="icon-button" id="exportButton" type="button" aria-label="Export configuration" title="Export configuration">
+            <svg><use href="#icon-download"></use></svg>
+          </button>
+          <button class="primary-button" id="applyButton" type="button">
+            <span>Apply profile</span>
+            <kbd>Ctrl S</kbd>
+          </button>
+        </div>
+      </header>
+
+      <div class="app-body">
+        <aside class="sidebar">
+          <div class="sidebar-heading">
+            <div>
+              <span class="eyebrow">Configuration</span>
+              <h2>Profiles</h2>
+            </div>
+            <span class="profile-count" id="profileCount">4</span>
+          </div>
+
+          <label class="search-field">
+            <svg aria-hidden="true"><use href="#icon-search"></use></svg>
+            <input id="profileSearch" type="search" placeholder="Find a profile" autocomplete="off" />
+            <span class="search-shortcut">/</span>
+          </label>
+
+          <div class="profile-list" id="profileList" aria-label="Profiles"></div>
+
+          <button class="new-profile-button" id="newProfileButton" type="button">
+            <svg aria-hidden="true"><use href="#icon-plus"></use></svg>
+            <span>New profile</span>
+          </button>
+
+          <div class="sidebar-footer">
+            <div class="preview-note" id="connectionNote">
+              <svg aria-hidden="true"><use href="#icon-info"></use></svg>
+              <div>
+                <strong id="connectionNoteTitle">Browser preview</strong>
+                <p id="connectionNoteBody">Start the Windows companion to detect and remap the attached keypad.</p>
+              </div>
+            </div>
+            <span class="build-label">TARTARUS IO / COMPANION 0.4</span>
+          </div>
+        </aside>
+
+        <main class="workspace">
+          <section class="workspace-header">
+            <div>
+              <div class="workspace-kicker">
+                <span class="profile-accent-dot" id="profileAccentDot"></span>
+                <span id="profileCategory">First-person shooter</span>
+                <span class="kicker-separator"></span>
+                <span id="profileSwitchLabel">Auto-switch enabled</span>
+              </div>
+              <h1 id="profileTitle">Night Ops</h1>
+              <p id="profileDescription">Fast movement, clean comms, zero reach.</p>
+            </div>
+            <div class="profile-meta">
+              <div>
+                <span>Linked application</span>
+                <strong id="linkedApplication">game-client.exe</strong>
+              </div>
+              <button class="text-button" id="editProfileButton" type="button">Edit profile</button>
+            </div>
+          </section>
+
+          <nav class="workspace-tabs" role="tablist" aria-label="Configuration sections">
+            <button class="workspace-tab is-active" type="button" role="tab" aria-selected="true" data-tab="mapping">
+              <svg aria-hidden="true"><use href="#icon-keyboard"></use></svg>
+              Mapping
+              <span class="tab-count">25</span>
+            </button>
+            <button class="workspace-tab" type="button" role="tab" aria-selected="false" data-tab="lighting">
+              <svg aria-hidden="true"><use href="#icon-sun"></use></svg>
+              Lighting
+            </button>
+            <button class="workspace-tab" type="button" role="tab" aria-selected="false" data-tab="macros">
+              <svg aria-hidden="true"><use href="#icon-command"></use></svg>
+              Macros
+              <span class="tab-count" id="macroCount">3</span>
+            </button>
+          </nav>
+
+          <section class="tab-panel is-active" id="mappingPanel" data-panel="mapping" role="tabpanel">
+            <div class="mapping-layout">
+              <article class="panel device-panel">
+                <header class="panel-header">
+                  <div>
+                    <span class="panel-kicker">Physical layout</span>
+                    <h2>Key map</h2>
+                  </div>
+                  <div class="panel-tools">
+                    <div class="layer-switch" aria-label="Keymap layer">
+                      <button class="is-active" type="button">Base</button>
+                      <button type="button" disabled title="The original Tartarus Chroma exposes one base layer">Fn</button>
+                    </div>
+                    <button class="secondary-button" id="testModeButton" type="button">
+                      <span class="test-dot"></span>
+                      Test input
+                    </button>
+                  </div>
+                </header>
+
+                <div class="device-stage" id="deviceStage">
+                  <span class="ambient-glow ambient-glow-one"></span>
+                  <span class="ambient-glow ambient-glow-two"></span>
+                  <div class="device-cable" aria-hidden="true"></div>
+                  <div class="tartarus-device">
+                    <div class="device-ridge" aria-hidden="true">
+                      <span>TARTARUS</span>
+                    </div>
+                    <div class="finger-deck">
+                      <div class="key-grid" id="keyGrid" aria-label="Main keypad keys"></div>
+                    </div>
+                    <div class="thumb-deck">
+                      <button class="thumb-button" type="button" data-control-id="thumb" aria-label="Upper thumb button">
+                        <span class="thumb-button-cap" aria-hidden="true">16</span>
+                        <span class="thumb-control-label">ALT</span>
+                      </button>
+                      <div class="dpad" id="dpad" aria-label="Eight-way directional thumbpad"></div>
+                      <button class="thumb-paddle" type="button" data-control-id="paddle" aria-label="Thumb paddle">
+                        <span>SPACE</span>
+                      </button>
+                    </div>
+                    <div class="palm-rest" aria-hidden="true">
+                      <span class="palm-rest-line"></span>
+                    </div>
+                  </div>
+                </div>
+
+                <footer class="device-panel-footer">
+                  <div>
+                    <span class="footer-indicator"></span>
+                    <span id="deviceHint">Select a control to change its assignment.</span>
+                  </div>
+                  <div class="mapping-stats">
+                    <span><strong id="mappedCount">25</strong> mapped</span>
+                    <span><strong id="macroMappedCount">2</strong> macros</span>
+                  </div>
+                </footer>
+              </article>
+
+              <aside class="panel inspector-panel" id="inspectorPanel">
+                <header class="inspector-header">
+                  <div class="selected-control-badge" id="selectedControlBadge">08</div>
+                  <div>
+                    <span class="panel-kicker">Selected control</span>
+                    <h2 id="selectedControlTitle">Key 08</h2>
+                  </div>
+                  <span class="binding-status">Mapped</span>
+                </header>
+
+                <div class="current-binding">
+                  <span>Current assignment</span>
+                  <strong id="currentBindingValue">W</strong>
+                  <small id="currentBindingDescription">Move forward</small>
+                </div>
+
+                <div class="inspector-section">
+                  <label class="field-label">Assignment type</label>
+                  <div class="binding-types" id="bindingTypes">
+                    <button class="binding-type is-active" type="button" data-binding-type="Keyboard">
+                      <svg aria-hidden="true"><use href="#icon-keyboard"></use></svg>
+                      <span>Keyboard</span>
+                    </button>
+                    <button class="binding-type" type="button" data-binding-type="Mouse">
+                      <svg aria-hidden="true"><use href="#icon-mouse"></use></svg>
+                      <span>Mouse</span>
+                    </button>
+                    <button class="binding-type" type="button" data-binding-type="Macro">
+                      <svg aria-hidden="true"><use href="#icon-command"></use></svg>
+                      <span>Macro</span>
+                    </button>
+                    <button class="binding-type" type="button" data-binding-type="Profile">
+                      <svg aria-hidden="true"><use href="#icon-layers"></use></svg>
+                      <span>Profile</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="inspector-section">
+                  <div class="field-label-row">
+                    <label class="field-label" for="bindingValue">Key or action</label>
+                    <button class="inline-action" id="recordButton" type="button">
+                      <span class="record-dot"></span>
+                      Record input
+                    </button>
+                  </div>
+                  <div class="binding-input-wrap">
+                    <input id="bindingValue" type="text" value="W" autocomplete="off" spellcheck="false" />
+                    <kbd id="bindingPreview">W</kbd>
+                  </div>
+                  <div class="quick-bindings" id="quickBindings" aria-label="Quick assignments"></div>
+                </div>
+
+                <div class="inspector-section">
+                  <label class="field-label">Modifiers</label>
+                  <div class="modifier-row" id="modifierRow">
+                    <label><input type="checkbox" value="Ctrl" /><span>Ctrl</span></label>
+                    <label><input type="checkbox" value="Shift" /><span>Shift</span></label>
+                    <label><input type="checkbox" value="Alt" /><span>Alt</span></label>
+                    <label><input type="checkbox" value="Meta" /><span>Meta</span></label>
+                  </div>
+                </div>
+
+                <div class="inspector-section compact-section">
+                  <label class="field-label" for="triggerMode">Trigger behavior</label>
+                  <select id="triggerMode">
+                    <option value="Press">Press once</option>
+                    <option value="Hold">Hold while pressed</option>
+                    <option value="Toggle">Toggle on / off</option>
+                    <option value="Repeat">Repeat while held</option>
+                  </select>
+                </div>
+
+                <div class="rules-note" id="rulesNote">
+                  <svg aria-hidden="true"><use href="#icon-info"></use></svg>
+                  <p>One input per press is the safest default for online games.</p>
+                </div>
+
+                <button class="assign-button" id="assignButton" type="button">
+                  Assign to <span id="assignTarget">Key 08</span>
+                  <svg aria-hidden="true"><use href="#icon-chevron"></use></svg>
+                </button>
+              </aside>
+            </div>
+          </section>
+
+          <section class="tab-panel" id="lightingPanel" data-panel="lighting" role="tabpanel" hidden>
+            <div class="lighting-layout">
+              <article class="panel lighting-preview-panel">
+                <header class="panel-header">
+                  <div>
+                    <span class="panel-kicker">Device + preview</span>
+                    <h2>Chroma lighting</h2>
+                  </div>
+                  <label class="toggle">
+                    <input id="lightingEnabled" type="checkbox" checked />
+                    <span class="toggle-track"></span>
+                    <span>Enabled</span>
+                  </label>
+                </header>
+                <div class="lighting-stage" id="lightingStage">
+                  <span class="lighting-aura"></span>
+                  <div class="mini-device" id="miniDevice">
+                    <div class="mini-grid" id="lightingKeyGrid"></div>
+                    <div class="mini-thumb">
+                      <span class="mini-thumb-button"></span>
+                      <span class="mini-dpad"></span>
+                      <span class="mini-paddle"></span>
+                    </div>
+                  </div>
+                  <div class="lighting-caption">
+                    <span id="lightingEffectLabel">Reactive</span>
+                    <small id="lightingColorLabel">Signal green · 74%</small>
+                  </div>
+                </div>
+              </article>
+
+              <aside class="panel lighting-controls">
+                <div class="lighting-hardware-state" id="lightingHardwareState" role="status">
+                  <span class="lighting-hardware-dot" aria-hidden="true"></span>
+                  <span>
+                    <strong id="lightingHardwareTitle">Checking device lighting</strong>
+                    <small id="lightingHardwareMessage">The Windows companion reports whether settings reached the keypad.</small>
+                  </span>
+                </div>
+                <div class="control-block">
+                  <div class="section-heading">
+                    <div>
+                      <span class="panel-kicker">Behavior</span>
+                      <h3>Lighting effect</h3>
+                    </div>
+                  </div>
+                  <div class="effect-grid" id="effectGrid">
+                    <button type="button" data-effect="Static"><span class="effect-preview static-preview"></span><strong>Static</strong><small>One steady color</small></button>
+                    <button type="button" data-effect="Breathing"><span class="effect-preview breathing-preview"></span><strong>Breathing</strong><small>Slow ambient pulse</small></button>
+                    <button class="is-active" type="button" data-effect="Reactive"><span class="effect-preview reactive-preview"></span><strong>Reactive</strong><small>Responds to input</small></button>
+                    <button type="button" data-effect="Spectrum"><span class="effect-preview spectrum-preview"></span><strong>Spectrum</strong><small>Full color cycle</small></button>
+                  </div>
+                </div>
+
+                <div class="control-block">
+                  <label class="field-label">Primary color</label>
+                  <div class="color-palette" id="colorPalette">
+                    <button class="is-active" type="button" data-color="#68f59a" data-name="Signal green" style="--swatch:#68f59a" aria-label="Signal green"></button>
+                    <button type="button" data-color="#83f3ff" data-name="Ion blue" style="--swatch:#83f3ff" aria-label="Ion blue"></button>
+                    <button type="button" data-color="#a989ff" data-name="Ultraviolet" style="--swatch:#a989ff" aria-label="Ultraviolet"></button>
+                    <button type="button" data-color="#ff6b8b" data-name="Ember pink" style="--swatch:#ff6b8b" aria-label="Ember pink"></button>
+                    <button type="button" data-color="#ffb55f" data-name="Warm amber" style="--swatch:#ffb55f" aria-label="Warm amber"></button>
+                    <label class="custom-color" title="Custom color">
+                      <input id="customColor" type="color" value="#68f59a" aria-label="Custom lighting color" />
+                      <svg aria-hidden="true"><use href="#icon-plus"></use></svg>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="control-block">
+                  <div class="range-heading">
+                    <label class="field-label" for="brightnessRange">Brightness</label>
+                    <output id="brightnessValue">74%</output>
+                  </div>
+                  <input id="brightnessRange" class="range" type="range" min="0" max="100" value="74" />
+                  <div class="range-labels"><span>Off</span><span>Maximum</span></div>
+                </div>
+
+                <label class="setting-row">
+                  <span>
+                    <strong>Save with profile</strong>
+                    <small>Recall this lighting when Night Ops activates.</small>
+                  </span>
+                  <input id="saveLightingWithProfile" type="checkbox" checked />
+                  <span class="toggle-track"></span>
+                </label>
+              </aside>
+            </div>
+          </section>
+
+          <section class="tab-panel" id="macrosPanel" data-panel="macros" role="tabpanel" hidden>
+            <div class="macro-layout">
+              <aside class="panel macro-library">
+                <header class="panel-header">
+                  <div>
+                    <span class="panel-kicker">Library</span>
+                    <h2>Macros</h2>
+                  </div>
+                  <button class="square-button" id="newMacroButton" type="button" aria-label="Create macro">
+                    <svg><use href="#icon-plus"></use></svg>
+                  </button>
+                </header>
+                <div class="macro-list" id="macroList"></div>
+                <div class="macro-library-footer">
+                  <span>Macros stay in this browser preview.</span>
+                </div>
+              </aside>
+
+              <article class="panel macro-editor">
+                <header class="macro-editor-header">
+                  <div>
+                    <span class="panel-kicker">Sequence editor</span>
+                    <div class="macro-title-row">
+                      <h2 id="macroTitle">Quick ping</h2>
+                      <span class="duration-pill" id="macroDuration">180 ms</span>
+                    </div>
+                    <p id="macroDescription">Open ping wheel and mark the current target.</p>
+                  </div>
+                  <div class="macro-actions">
+                    <button class="secondary-button" id="playMacroButton" type="button">
+                      <svg><use href="#icon-play"></use></svg>
+                      Preview
+                    </button>
+                    <button class="icon-button danger-button" id="deleteMacroButton" type="button" aria-label="Delete macro">
+                      <svg><use href="#icon-trash"></use></svg>
+                    </button>
+                  </div>
+                </header>
+
+                <div class="macro-warning">
+                  <svg aria-hidden="true"><use href="#icon-info"></use></svg>
+                  <p><strong>Use responsibly.</strong> Multi-action macros and automated repeats may violate a game's rules. Preview never emits system input.</p>
+                </div>
+
+                <div class="sequence-header">
+                  <span>Sequence</span>
+                  <span>Delay after</span>
+                </div>
+                <div class="sequence-list" id="sequenceList"></div>
+                <button class="add-step-button" id="addStepButton" type="button">
+                  <svg aria-hidden="true"><use href="#icon-plus"></use></svg>
+                  Add action
+                </button>
+
+                <footer class="macro-editor-footer">
+                  <span><span class="footer-indicator"></span> Changes are saved with this configuration.</span>
+                  <button class="primary-button" id="saveMacroButton" type="button">Save macro</button>
+                </footer>
+              </article>
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <dialog class="profile-dialog" id="profileDialog">
+      <form id="profileForm">
+        <button class="dialog-close" id="dialogCloseButton" type="button" aria-label="Close dialog">×</button>
+        <span class="panel-kicker" id="dialogKicker">New configuration</span>
+        <h2 id="dialogTitle">Create profile</h2>
+        <p id="dialogDescription">Start from the active layout, then tune it for another game or workflow.</p>
+
+        <label class="dialog-field">
+          <span>Profile name</span>
+          <input id="profileNameInput" name="profileName" type="text" maxlength="28" required placeholder="e.g. Starship Pilot" />
+        </label>
+        <div class="dialog-field">
+          <label for="profileAppSelect">Linked application</label>
+          <div class="application-picker">
+            <select id="profileAppSelect" name="profileApp" aria-describedby="profileAppHint">
+              <option value="">No linked application</option>
+            </select>
+            <button
+              class="application-browse-button"
+              id="browseApplicationButton"
+              type="button"
+              aria-label="Browse for an executable"
+              title="Browse for an executable"
+            >…</button>
+          </div>
+          <small class="dialog-field-hint" id="profileAppHint">
+            Steam games and installed applications are provided by the Windows companion.
+          </small>
+        </div>
+        <label class="dialog-check">
+          <input id="profileAutoSwitchInput" name="profileAutoSwitch" type="checkbox" checked />
+          <span>
+            <strong>Switch automatically for this application</strong>
+            <small>Activate this profile while the selected executable is running.</small>
+          </span>
+        </label>
+        <label class="dialog-check">
+          <input id="profileFallbackInput" name="profileFallback" type="checkbox" />
+          <span>
+            <strong>Use as fallback profile</strong>
+            <small id="profileFallbackHint">Activate when no linked application is running.</small>
+          </span>
+        </label>
+        <div class="dialog-actions">
+          <button class="secondary-button" id="dialogCancelButton" type="button">Cancel</button>
+          <button class="primary-button" id="dialogSubmitButton" type="submit">Create profile</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="profile-dialog device-dialog" id="deviceDialog">
+      <div class="device-dialog-content">
+        <button class="dialog-close" id="deviceDialogCloseButton" type="button" aria-label="Close device details">×</button>
+        <span class="panel-kicker">Windows companion</span>
+        <h2>Device connection</h2>
+        <p class="device-dialog-intro" id="deviceDialogIntro">
+          Checking the attached keypad and remapping driver.
+        </p>
+
+        <div class="device-summary-card">
+          <span class="device-summary-icon">
+            <svg aria-hidden="true"><use href="#icon-gamepad"></use></svg>
+          </span>
+          <div>
+            <strong id="deviceDialogName">Razer Tartarus Chroma</strong>
+            <small id="deviceDialogIdentity">USB 1532:0208</small>
+          </div>
+          <span class="device-summary-state" id="deviceDialogState">Checking</span>
+        </div>
+
+        <div class="device-facts">
+          <div>
+            <span>Profile storage</span>
+            <strong>Tartarus IO software</strong>
+            <small>This model has no onboard profile memory.</small>
+          </div>
+          <div>
+            <span>Input isolation</span>
+            <strong id="driverStateTitle">Checking HidHide</strong>
+            <small id="driverStateDescription">Physical input must be hidden before remapping starts.</small>
+          </div>
+        </div>
+
+        <div class="driver-callout" id="driverCallout">
+          <svg aria-hidden="true"><use href="#icon-info"></use></svg>
+          <div>
+            <strong id="driverCalloutTitle">HidHide setup required</strong>
+            <p id="driverCalloutBody">HidHide prevents the original key and its remapped action from firing together.</p>
+          </div>
+        </div>
+
+        <div class="dialog-actions device-dialog-actions">
+          <button class="secondary-button" id="driverSetupButton" type="button">Install HidHide</button>
+          <button class="primary-button" id="remappingToggleButton" type="button" disabled>Enable remapping</button>
+        </div>
+      </div>
+    </dialog>
+
+    <div class="toast" id="toast" role="status" aria-live="polite">
+      <span class="toast-icon"><svg><use href="#icon-check"></use></svg></span>
+      <div>
+        <strong id="toastTitle">Profile updated</strong>
+        <span id="toastMessage">Your changes are ready.</span>
+      </div>
+    </div>
+
+    <script src="app.js" defer></script>
+  </body>
+</html>
