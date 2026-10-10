@@ -15,7 +15,11 @@ namespace TartarusIO.Companion
         private const string DependencyKey = @"Installer\Dependencies\NSS.Drivers.HidHide.x64";
         private const string ProductKey =
             @"SOFTWARE\Nefarius Software Solutions e.U.\Nefarius Software Solutions e.U. HidHide";
+        private const string UninstallKey = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall";
+        private const string DriverServiceKey = @"SYSTEM\CurrentControlSet\Services\HidHide";
+        private const string CliFileName = "HidHideCLI.exe";
         private readonly string _executablePath;
+        private readonly object _statusSync = new object();
 
         public HidHideService(string executablePath)
         {
@@ -24,8 +28,22 @@ namespace TartarusIO.Companion
 
         public HidHideStatus GetStatus()
         {
-            var cliPath = FindCliPath();
-            var installed = IsRegistryKeyPresent(DependencyKey) || IsRegistryKeyPresent(ProductKey) || cliPath != null;
+            lock (_statusSync)
+            {
+                return GetStatusLocked();
+            }
+        }
+
+        private HidHideStatus GetStatusLocked()
+        {
+            bool registeredInstallation;
+            var installLocations = GetRegisteredInstallLocations(out registeredInstallation);
+            var cliPath = FindCliPath(installLocations);
+            var installed = registeredInstallation
+                            || IsRegistryKeyPresent(DependencyKey)
+                            || IsRegistryKeyPresent(ProductKey)
+                            || IsDriverServicePresent()
+                            || cliPath != null;
             var status = new HidHideStatus
             {
                 installed = installed,
@@ -195,6 +213,58 @@ namespace TartarusIO.Companion
             }
         }
 
+        private static bool IsDriverServicePresent()
+        {
+            using (var key = Registry.LocalMachine.OpenSubKey(DriverServiceKey))
+            {
+                return key != null;
+            }
+        }
+
+        private static List<string> GetRegisteredInstallLocations(out bool installed)
+        {
+            var locations = new List<string>();
+            installed = false;
+
+            foreach (var view in new[] { RegistryView.Registry64, RegistryView.Registry32 })
+            {
+                using (var baseKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, view))
+                using (var uninstallKey = baseKey.OpenSubKey(UninstallKey))
+                {
+                    if (uninstallKey == null)
+                    {
+                        continue;
+                    }
+
+                    foreach (var productKeyName in uninstallKey.GetSubKeyNames())
+                    {
+                        using (var productKey = uninstallKey.OpenSubKey(productKeyName))
+                        {
+                            if (productKey == null)
+                            {
+                                continue;
+                            }
+
+                            var displayName = productKey.GetValue("DisplayName") as string;
+                            if (!String.Equals(displayName, "HidHide", StringComparison.OrdinalIgnoreCase))
+                            {
+                                continue;
+                            }
+
+                            installed = true;
+                            var installLocation = productKey.GetValue("InstallLocation") as string;
+                            if (!String.IsNullOrWhiteSpace(installLocation))
+                            {
+                                locations.Add(installLocation);
+                            }
+                        }
+                    }
+                }
+            }
+
+            return locations;
+        }
+
         private static bool IsAdministrator()
         {
             using (var identity = WindowsIdentity.GetCurrent())
@@ -206,7 +276,13 @@ namespace TartarusIO.Companion
 
         private string FindCliPath()
         {
-            var candidates = new List<string>();
+            bool registeredInstallation;
+            return FindCliPath(GetRegisteredInstallLocations(out registeredInstallation));
+        }
+
+        private string FindCliPath(IEnumerable<string> registeredInstallLocations)
+        {
+            var candidates = new List<string>(registeredInstallLocations);
             using (var key = Registry.ClassesRoot.OpenSubKey(ProductKey))
             {
                 if (key != null)
@@ -231,7 +307,7 @@ namespace TartarusIO.Companion
             foreach (var candidate in candidates.Distinct(StringComparer.OrdinalIgnoreCase))
             {
                 if (File.Exists(candidate)
-                    && String.Equals(Path.GetFileName(candidate), "HidHideCLI.exe", StringComparison.OrdinalIgnoreCase))
+                    && String.Equals(Path.GetFileName(candidate), CliFileName, StringComparison.OrdinalIgnoreCase))
                 {
                     return candidate;
                 }
@@ -243,7 +319,7 @@ namespace TartarusIO.Companion
 
                 try
                 {
-                    var file = Directory.GetFiles(candidate, "HidHideCLI.exe", SearchOption.AllDirectories)
+                    var file = Directory.GetFiles(candidate, CliFileName, SearchOption.AllDirectories)
                         .FirstOrDefault();
                     if (file != null)
                     {

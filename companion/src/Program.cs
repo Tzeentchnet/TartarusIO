@@ -101,7 +101,8 @@ namespace TartarusIO.Companion
         private readonly NotifyIcon _notifyIcon;
         private readonly ToolStripMenuItem _remappingMenuItem;
         private readonly System.Windows.Forms.Timer _deviceTimer;
-        private HidHideStatus _lastDriverStatus;
+        private volatile HidHideStatus _lastDriverStatus;
+        private int _maintenanceRefreshActive;
 
         public CompanionApplicationContext(string webRoot, string dataDirectory)
         {
@@ -162,12 +163,7 @@ namespace TartarusIO.Companion
             _deviceTimer.Tick += delegate
             {
                 _rawInput.RefreshDevices();
-                _lastDriverStatus = _hidHide.GetStatus();
-                if (_profileAutoSwitcher.Refresh())
-                {
-                    _inputEmitter.StopAll();
-                    _lighting.ApplyActiveProfile(true);
-                }
+                QueueMaintenanceRefresh();
                 if (_inputEmitter.Enabled && (!_rawInput.IsConnected || !_lastDriverStatus.ready))
                 {
                     SetRemapping(false);
@@ -199,6 +195,42 @@ namespace TartarusIO.Companion
             _notifyIcon.Visible = false;
             _notifyIcon.Dispose();
             base.ExitThreadCore();
+        }
+
+        private void QueueMaintenanceRefresh()
+        {
+            if (Interlocked.CompareExchange(ref _maintenanceRefreshActive, 1, 0) != 0)
+            {
+                return;
+            }
+
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+                try
+                {
+                    var driverStatus = _hidHide.GetStatus();
+                    _lastDriverStatus = driverStatus;
+                    if (_inputEmitter.Enabled && !driverStatus.ready)
+                    {
+                        _inputEmitter.Enabled = false;
+                        _inputEmitter.StopAll();
+                    }
+
+                    if (_profileAutoSwitcher.Refresh())
+                    {
+                        _inputEmitter.StopAll();
+                        _lighting.ApplyActiveProfile(true);
+                    }
+                }
+                catch (Exception exception)
+                {
+                    Logger.Error("Companion maintenance refresh failed.", exception);
+                }
+                finally
+                {
+                    Interlocked.Exchange(ref _maintenanceRefreshActive, 0);
+                }
+            });
         }
 
         private CompanionStatus GetStatus()
@@ -297,8 +329,8 @@ namespace TartarusIO.Companion
 
         private void OnInputReceived(object sender, TartarusInputEventArgs eventArgs)
         {
-            _lighting.HandleInput(eventArgs.Pressed);
             _inputEmitter.HandleControl(eventArgs.ControlId, eventArgs.Pressed);
+            _lighting.HandleInput(eventArgs.Pressed);
         }
 
         private void OnDeviceChanged(object sender, EventArgs eventArgs)

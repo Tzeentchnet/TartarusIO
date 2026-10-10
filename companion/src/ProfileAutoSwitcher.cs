@@ -11,6 +11,7 @@ namespace TartarusIO.Companion
     {
         private readonly ConfigurationStore _configurationStore;
         private readonly object _sync = new object();
+        private readonly object _refreshSync = new object();
         private ProfileSwitchStatus _status;
         private string _manualProfileId;
 
@@ -24,6 +25,14 @@ namespace TartarusIO.Companion
         }
 
         public bool Refresh()
+        {
+            lock (_refreshSync)
+            {
+                return RefreshLocked();
+            }
+        }
+
+        private bool RefreshLocked()
         {
             var configuration = _configurationStore.GetConfiguration();
             if (configuration == null || configuration.profiles == null || configuration.profiles.Count == 0)

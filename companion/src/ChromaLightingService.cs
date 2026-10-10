@@ -414,6 +414,7 @@ namespace TartarusIO.Companion
         {
             StopTimersLocked();
             CloseDeviceLocked();
+            _activeLighting = null;
             _lastSignature = null;
             SetStatusLocked(
                 _rawInput.IsConnected,
